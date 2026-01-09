@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        
+
     }
 
     /**
@@ -20,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (config('app.env') === 'production') {
+        if (app()->environment('production') || env('APP_ENV') === 'production') {
             URL::forceScheme('https');
         }
     }
