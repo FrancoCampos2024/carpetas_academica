@@ -6,3 +6,7 @@ cmds = ['composer install --no-dev --optimize-autoloader']
 
 [phases.deploy]
 cmds = ['php artisan storage:link']
+
+# Agrega esto para que el servidor sepa dónde está el index.php
+[start]
+cmd = 'frankenphp php-server --listen :$PORT --root public/'
