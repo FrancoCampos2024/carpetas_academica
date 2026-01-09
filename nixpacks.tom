@@ -1,13 +1,11 @@
 [phases.setup]
-nixPkgs = ['php82', 'php82Packages.composer']
+nixPkgs = ['php82', 'php82Packages.composer', 'php82Extensions.bcmath']
 
 [phases.build]
 cmds = ['composer install --no-dev --optimize-autoloader']
 
 [phases.deploy]
-# Dejamos esto vacío para que NO intente hacer migraciones automáticas
 cmds = ['php artisan storage:link']
 
 [start]
-# Forzamos al servidor a entrar directamente a la carpeta public
 cmd = 'frankenphp php-server --listen :$PORT --root public/'
