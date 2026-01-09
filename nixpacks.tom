@@ -5,8 +5,9 @@ nixPkgs = ['php82', 'php82Packages.composer']
 cmds = ['composer install --no-dev --optimize-autoloader']
 
 [phases.deploy]
+# Dejamos esto vacío para que NO intente hacer migraciones automáticas
 cmds = ['php artisan storage:link']
 
-# Agrega esto para que el servidor sepa dónde está el index.php
 [start]
+# Forzamos al servidor a entrar directamente a la carpeta public
 cmd = 'frankenphp php-server --listen :$PORT --root public/'
