@@ -61,7 +61,7 @@
                                             data-bs-dismiss="click"
                                             title="Ver documento"
                                             x-data
-                                            @click="bootstrap.Tooltip.getInstance($el).hide()">
+                                            >
                                             <i class="ki-outline ki-eye fs-1 text-muted"></i>
                                         </a>
                                     @endif
