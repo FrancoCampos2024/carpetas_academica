@@ -1,1 +1,1 @@
-web: frankenphp php-server --listen :$PORT --root /app/public /app/public/index.php
+web: frankenphp php-server --listen :8080 --root public/
