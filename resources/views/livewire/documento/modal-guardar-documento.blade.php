@@ -14,7 +14,6 @@
                     <i class="ki-outline ki-cross fs-1"></i>
                 </div>
             </div>
-
             <form autocomplete="off" novalidate class="form fv-plugins-bootstrap5 fv-plugins-framework" wire:submit="cargar_documento">
 
                 <div class="modal-body px-5">

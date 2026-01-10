@@ -96,7 +96,7 @@ class DocumentoService
 
 
 
-    public function guardarDocumentoPdf($archivo, int $id_alumno, int $id_tipo_documento): Documento
+    public function guardarDocumentoPdf($archivo, int $id_alumno, int $id_tipo_documento, $nombreDocumento): Documento
     {
         $infoArchivo = $this->guardar_archivo(
             $archivo,
@@ -108,12 +108,13 @@ class DocumentoService
             'id_alumno'              => $id_alumno,
             'ruta_documento'         => $infoArchivo['ruta_ad'], // solo la ruta relativa
             'tipo_documento_catalogo'=> $id_tipo_documento,
+            'nombre_documento'       => $nombreDocumento,
         ]);
 
         return $documento;
     }
 
-    public function actualizarDocumentoPdf($archivo, Documento $documento): Documento
+    public function actualizarDocumentoPdf($archivo, Documento $documento, $nombreDocumento): Documento
     {
         // 1. Guardar archivo nuevo (NO borrar el anterior)
         $infoArchivo = $this->guardar_archivo(
@@ -124,6 +125,7 @@ class DocumentoService
 
         // 2. Actualizar solo la BD
         $documento->ruta_documento = $infoArchivo['ruta_ad'];
+        $documento->nombre_documento = $nombreDocumento;
         $documento->save();
 
         return $documento;

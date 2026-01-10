@@ -63,7 +63,8 @@ class Index extends Component
                 $this->documentoService->guardarDocumentoPdf(
                     $this->archivo_modal,
                     $this->id_alumno,
-                    $this->id_tipo
+                    $this->id_tipo,
+                    $this->nombre_archivo_modal
                 );
 
                 $mensajeToastr = mensajeToastr(
@@ -74,7 +75,8 @@ class Index extends Component
                 if ($this->archivo_modal) {
                     $this->documentoService->actualizarDocumentoPdf(
                         $this->archivo_modal,
-                        $this->documento
+                        $this->documento,
+                        $this->nombre_archivo_modal
                     );
                 }
 
@@ -154,7 +156,7 @@ class Index extends Component
         $this->documento = $documento;
         $this->modoEdicion = true;
         $this->archivoActual = $documento->ruta_documento;
-        $this->nombre_archivo_modal = basename($documento->ruta_documento);
+        $this->nombre_archivo_modal = $documento->nombre_documento;
         $this->id_tipo = $documento->tipo_documento_catalogo;
         $this->dispatch('cargando', cargando: 'false');
         $this->modalDocumento('#modalGuardarDocumento', 'show');
@@ -202,7 +204,7 @@ class Index extends Component
         $this->reset([
             'archivo_modal',
             'nombre_archivo_modal',
-            'documento', 
+            'documento',
             'archivoActual',
             'modoEdicion'
         ]);
