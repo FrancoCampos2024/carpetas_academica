@@ -8,7 +8,7 @@
 
         @if ($puedeVerInicio)
 
-            <div class="card shadow-sm mb-8" style="max-width: 980px;">
+            <div class="card shadow-sm mb-8">
                 <div class="card-body p-6">
                     <div class="w-100" style="max-width: 980px;">
 
@@ -96,7 +96,7 @@
                                                 <a
                                                     href="{{ route('archivos.ver', [
                                                         'disco' => encriptar(4),
-                                                        'id_documento_hash' => encriptar($doc->id_documento) 
+                                                        'id_documento_hash' => encriptar($doc->id_documento)
                                                     ]) }}"
                                                     target="_blank"
                                                     class="btn btn-sm btn-icon btn-active-light-primary"
