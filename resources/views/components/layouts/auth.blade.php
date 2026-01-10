@@ -24,16 +24,6 @@
                 </div>
                 <!--end::Form-->
 
-                <!--begin::Footer-->
-                <div class="w-lg-500px d-flex px-10 mx-auto">
-                    <!--begin::Links-->
-                    <div class="d-flex fw-semibold text-primary fs-base gap-5 ms-auto">
-                        <a href="https://unia.edu.pe/contact/" target="_blank">Contáctanos </a>
-                    </div>
-                    <!--end::Links-->
-                </div>
-                <!--end::Footer-->
-
             </div>
             <!--end::Body-->
 
