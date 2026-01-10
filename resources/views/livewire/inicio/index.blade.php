@@ -83,6 +83,7 @@
                                 <thead>
                                     <tr>
                                         <th class="text-center">N°</th>
+                                        <th class="text-center">Nombre</th>
                                         <th class="text-center">Fecha</th>
                                         <th class="text-center">Ver documento</th>
                                     </tr>
@@ -91,6 +92,7 @@
                                     @foreach ($documentos as $doc)
                                         <tr>
                                             <td class="text-center">{{ $loop->iteration }}</td>
+                                            <td class="text-center">{{ $doc->nombre_documento }}</td>
                                             <td class="text-center">{{ optional($doc->au_fechacr)->format('d/m/Y') }}</td>
                                             <td class="text-center">
                                                 <a
