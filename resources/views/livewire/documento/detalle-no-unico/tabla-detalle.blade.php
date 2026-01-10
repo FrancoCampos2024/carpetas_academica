@@ -1,4 +1,4 @@
-<div class="card mb-6 mb-xl-9" style="max-width: 1250px;">
+<div class="card mb-6 mb-xl-9">
 
     <!-- Header -->
     <div class="card-header py-3 w-100">
