@@ -44,7 +44,7 @@
 
                     <!--begin::Text-->
                     <div class="d-none d-lg-block fs-2 text-white fs-base text-center">
-                        Descubre todas las funcionalidades que hemos diseñado para tu aprendizaje y crecimiento
+                        Centraliza, organiza y asegura todos tus documentos académicos en un solo lugar
                     </div>
                     <!--end::Text-->
 
