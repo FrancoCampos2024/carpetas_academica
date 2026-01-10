@@ -51,6 +51,7 @@
             <thead>
                 <tr class="fw-bold text-muted text-uppercase fs-7">
                     <th class="text-center">N°</th>
+                    <th class="text-center">Nombre</th>
                     <th class="text-center">Fecha Registro</th>
                     <th class="text-center">Acción</th>
                 </tr>
@@ -63,6 +64,8 @@
 
                     <!-- N° -->
                     <td>{{ $loop->iteration }}</td>
+
+                    <td class="text-center">{{ $doc->nombre_documento ?? '-' }}</td>
 
                     <!-- Fecha de registro -->
                     <td>

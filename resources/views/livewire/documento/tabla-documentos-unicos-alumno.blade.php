@@ -14,6 +14,7 @@
                 <thead>
                     <tr class="fw-bold text-muted text-uppercase fs-7">
                         <th class="text-center">N°</th>
+                        <th class="text-center">Nombre</th>
                         <th class="text-center">Tipo Documento</th>
                         <th class="text-center">Fecha Registro</th>
                         <th class="text-center">Acción</th>
@@ -25,6 +26,7 @@
                     @forelse($tiposDocumentosUnicos as $tipo)
                     <tr class="text-center">
                         <td>{{ $loop->iteration }}</td>
+                        <td class="text-center">{{ $tipo->documento->first()->nombre_documento ?? '-' }}</td>
                         <td class="text-center">
                             <!-- Verificar si el documento está registrado o no -->
                             <span class="badge fs-8 {{ $tipo->documento && $tipo->documento->count() > 0

@@ -170,7 +170,7 @@ class Index extends Component
         if (!$documento) return;
 
         $this->documentoEliminarId = $documento->id_documento;
-        $this->nombre_registro_eliminar = basename($documento->ruta_documento);
+        $this->nombre_registro_eliminar = $documento->nombre_documento;
         $this->mensaje_cuerpo_eliminar =
             'Esta acción enviará el documento a eliminados y no se borrará físicamente.';
 
