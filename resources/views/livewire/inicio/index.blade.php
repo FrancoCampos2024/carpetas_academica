@@ -10,7 +10,7 @@
 
             <div class="card shadow-sm mb-8">
                 <div class="card-body p-6">
-                    <div class="w-100" style="max-width: 980px;">
+                    <div class="w-100">
 
                         <h4 class="fw-bold text-dark mb-5 d-flex align-items-center">
                             <i class="ki-outline ki-search fs-2 me-2 text-primary"></i>
