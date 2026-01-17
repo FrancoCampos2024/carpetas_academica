@@ -140,22 +140,40 @@ class DocumentoService
         return $this->DocumentoRepository->existeItemCatalogo($tipo_dcoumento_catalogo);
     }
 
-    public function paginarPorTipoYRangoCreacion(int $tipo, string $inicio, string $fin, int $perPage = 10)
+    public function paginarPorTipoYRangoCreacion(int $tipo, string $inicio, string $fin, int $perPage = 10, string $estado = 'creados')
     {
+        $esModoEliminado = ($estado === 'eliminados');
+
+        // Definimos qué columnas de auditoría usar según el modo
+        $columnaFecha = $esModoEliminado ? 'd.au_fechael' : 'd.au_fechacr';
+        $columnaUsuario = $esModoEliminado ? 'd.au_usuarioel' : 'd.au_usuariocr';
+
         return DB::table('ta_documento as d')
             ->select([
                 'd.id_documento',
                 'd.id_alumno',
                 'd.ruta_documento',
+                'd.nombre_documento',
                 'd.tipo_documento_catalogo',
                 'd.au_fechacr',
                 'd.au_usuariocr',
+                'd.au_fechael',   // Añadimos estas para que el Livewire pueda leerlas
+                'd.au_usuarioel',
             ])
-            ->whereNull('d.au_fechael')
-            ->where('d.au_fechacr', '>=', $inicio)
-            ->whereRaw("d.au_fechacr < DATE_ADD(?, INTERVAL 1 DAY)", [$fin])
+            // Si es modo "creados", fechael debe ser NULL.
+            // Si es modo "eliminados", fechael NO debe ser NULL.
+            ->when(!$esModoEliminado, fn($q) => $q->whereNull('d.au_fechael'))
+            ->when($esModoEliminado, fn($q) => $q->whereNotNull('d.au_fechael'))
+
+            // Filtramos por el rango de fechas usando la columna correspondiente (creación o eliminación)
+            ->where($columnaFecha, '>=', $inicio)
+            ->whereRaw("$columnaFecha < DATE_ADD(?, INTERVAL 1 DAY)", [$fin])
+
+            // Filtro por tipo de documento
             ->when($tipo !== 0, fn ($q) => $q->where('d.tipo_documento_catalogo', $tipo))
-            ->orderByDesc('d.au_fechacr')
+
+            // Ordenamos por la fecha relevante
+            ->orderByDesc($columnaFecha)
             ->paginate($perPage);
     }
 

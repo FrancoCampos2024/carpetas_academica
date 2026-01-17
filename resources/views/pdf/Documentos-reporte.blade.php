@@ -111,6 +111,19 @@
             font-size:10px; color:#6b7280; padding:0 12px;
         }
         .footer .bold{font-weight:700; color:#111827;}
+
+        table {
+            width: 100%;
+            table-layout: fixed; /* Esto es vital para que respete los anchos de columna */
+            border-collapse: collapse;
+        }
+
+        td {
+            word-wrap: break-word; /* Fuerza el salto de línea en palabras largas */
+            overflow-wrap: break-word;
+            vertical-align: top;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -122,7 +135,7 @@
         <div class="col col-left">
             <div class="p14 header-min">
                 <div class="head">
-                    @if($logoSrc)
+                    @if(isset($logoSrc) && $logoSrc)
                         <img src="{{ $logoSrc }}" class="logo" alt="Logo UNIA">
                     @endif
                     <div class="uni">{{ strtoupper($nombre_institucion) }}</div>
@@ -133,7 +146,10 @@
         </div>
 
         <div class="col col-right">
-            <div class="panel-title">REPORTE: DOCUMENTOS CREADOS</div>
+            {{-- Título dinámico según el estado --}}
+            <div class="panel-title" style="{{ ($es_eliminados ?? false) ? 'color: #e53e3e;' : '' }}">
+                REPORTE: DOCUMENTOS {{ ($es_eliminados ?? false) ? 'ELIMINADOS' : 'CREADOS' }}
+            </div>
             <div class="card p10 header-min">
                 <div class="info-grid">
                     <div class="info-cell left">
@@ -143,19 +159,15 @@
                         </div>
                         <div class="info-row">
                             <span class="label">Registros:</span>
-                            <span>{{ $items->count() }}</span>
+                            <span>{{ count($items) }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="label">Tipo:</span>
-                            <span style="text-transform: uppercase;">{{ $tipo }}</span>
+                            <span class="label">Tipo Doc.:</span>
+                            <span style="text-transform: uppercase;">{{ $filtros_limpios['tipo'] ?? 'TODOS' }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="label">Desde:</span>
-                            <span style="text-transform: uppercase;">{{ $desde }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">Hasta:</span>
-                            <span style="text-transform: uppercase;">{{ $hasta }}</span>
+                            <span class="label">Rango:</span>
+                            <span style="text-transform: uppercase;">{{ $filtros_limpios['desde'] }} al {{ $filtros_limpios['hasta'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -165,15 +177,19 @@
 
     {{-- TABLA --}}
     <div class="card p14">
-        <table>
+        <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
-                    <th class="text-center" style="width:35px;">N°</th>
-                    <th class="text-center" style="width:240px;">ALUMNO</th>
-                    <th class="text-center" style="width:120px;">TIPO</th>
-                    <th class="text-center" style="width:260px;">ARCHIVO</th>
-                    <th class="text-center" style="width:120px;">FECHA CREACIÓN</th>
-                    <th class="text-center" style="width:90px;">USUARIO</th>
+                    <th class="text-center" style="width:30px;">N°</th>
+                    <th class="text-center" style="width:230px;">ALUMNO</th>
+                    <th class="text-center" style="width:110px;">TIPO</th>
+                    <th class="text-center" style="width:250px;">ARCHIVO</th>
+                    <th class="text-center" style="width:130px;">
+                        {{ ($es_eliminados ?? false) ? 'FECHA ELIMINACIÓN' : 'FECHA CREACIÓN' }}
+                    </th>
+                    <th class="text-center" style="width:100px;">
+                        {{ ($es_eliminados ?? false) ? 'ELIMINADO POR' : 'USUARIO' }}
+                    </th>
                 </tr>
             </thead>
 
@@ -181,45 +197,60 @@
             @php $i=0; @endphp
             @foreach($items as $doc)
                 @php
-                    // si viene array (lo normal en tu report)
+                    $isEliminado = ($es_eliminados ?? false);
+
                     $alumnoNombre = $doc['alumno_nombre'] ?? 'No disponible';
                     $alumnoCE     = $doc['alumno_codigo'] ?? '-';
                     $alumnoDNI    = $doc['alumno_dni'] ?? '-';
                     $alumnoEsc    = $doc['alumno_escuela'] ?? 'No disponible';
 
-                    $tipoNombre = $doc['tipo_nombre'] ?? ('Tipo #' . ($doc['tipo_documento_catalogo'] ?? '-'));
+                    $tipoNombre = $doc['tipo_nombre'] ?? 'General';
+                    $nombreArchivo = $doc['nombre_documento'] ?? 'Sin nombre';
+                    $rutaCorta = \Illuminate\Support\Str::after($doc['ruta_documento'] ?? '', 'Documentos/');
 
-                    $ruta = $doc['ruta_documento'] ?? '';
-                    $archivo = $ruta ? basename($ruta) : 'Archivo no disponible';
-
-                    $fecha = !empty($doc['au_fechacr'])
-                        ? \Carbon\Carbon::parse($doc['au_fechacr'])->format('d/m/Y H:i')
+                    // Lógica dinámica de fecha según el modo
+                    $fechaRaw = $isEliminado ? ($doc['au_fechael'] ?? null) : ($doc['au_fechacr'] ?? null);
+                    $fechaFormateada = !empty($fechaRaw)
+                        ? \Carbon\Carbon::parse($fechaRaw)->format('d/m/Y H:i')
                         : '-';
 
-                    $usuario =$doc['usuario_nombre'] ?? '-';
+                    $usuario = $doc['usuario_nombre'] ?? '-';
                 @endphp
 
                 <tr>
-                    <td class="text-center">{{ ++$i }}</td>
+                    <td class="text-center" style="vertical-align: middle;">{{ ++$i }}</td>
 
-                    <td class="text-center">
-                        <div style="font-weight:700; color:#111827;">{{ $alumnoNombre }}</div>
-                        <div class="small">CE: {{ $alumnoCE }} · DNI: {{ $alumnoDNI }}</div>
-                        <div class="small">{{ $alumnoEsc }}</div>
+                    <td class="text-left">
+                        <div style="font-weight:700; color:#111827; font-size: 10px;">{{ strtoupper($alumnoNombre) }}</div>
+                        <div class="small" style="font-size: 9px; color: #4b5563;">
+                            CE: {{ $alumnoCE }} | DNI: {{ $alumnoDNI }}
+                        </div>
+                        <div class="small" style="font-size: 8px; color: #6b7280;">{{ $alumnoEsc }}</div>
                     </td>
 
                     <td class="text-center">
-                        <span class="badge">{{ $tipoNombre }}</span>
+                        <span class="badge" style="font-size: 8px; border: 1px solid #e5e7eb; padding: 2px 5px;">
+                            {{ strtoupper($tipoNombre) }}
+                        </span>
                     </td>
 
-                    <td class="text-center">
-                        <div class="file-name">{{ $archivo }}</div>
-                        <span class="small truncate">{{ $ruta ?: 'Ruta no disponible' }}</span>
+                    <td class="text-left" style="width: 250px;">
+                        <div style="width: 100%; font-weight: bold; font-size: 9px; color: #111827; word-wrap: break-word; line-height: 1.2;">
+                            {{ $nombreArchivo }}
+                        </div>
+                        <div style="width: 100%; font-size: 8px; color: #6b7280; font-style: italic; word-wrap: break-word; margin-top: 4px; line-height: 1.1;">
+                            <span style="color: #9ca3af;">Ruta:</span> {{ $rutaCorta ?: 'Ruta no disponible' }}
+                        </div>
                     </td>
 
-                    <td class="text-center">{{ $fecha }}</td>
+                    <td class="text-center" style="font-size: 10px; {{ $isEliminado ? 'color: #dc2626;' : '' }}">
+                        {{ $fechaFormateada }}
+                    </td>
 
-                    <td class="text-center">{{ $usuario }}</td>
+                    <td class="text-center" style="font-size: 9px;">
+                        <div class="fw-bold">{{ $usuario }}</div>
+                        <div class="small" style="font-size: 8px; color: #9ca3af;">{{ $doc['usuario_login'] ?? '' }}</div>
+                    </td>
                 </tr>
             @endforeach
             </tbody>

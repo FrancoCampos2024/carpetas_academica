@@ -24,6 +24,8 @@ class Tabla extends Component
     public ?string $fecha_desde = null;
     public ?string $fecha_hasta = null;
     public $puedeExportar;
+    public string $filtro_estado = 'creados';
+    public bool $ver_eliminados = false;
 
     protected DocumentoService $documentoService;
     protected CatalogoService $catalogoService;
@@ -62,6 +64,7 @@ class Tabla extends Component
 
     public function aplicarFiltros()
     {
+        $this->ver_eliminados = ($this->filtro_estado === 'eliminados');
         $this->resetPage();
         $this->dispatch('sync-tipo-select', tipo: $this->id_tipo_documento);
     }
@@ -97,22 +100,27 @@ class Tabla extends Component
         $desde = $this->fecha_desde ?? now()->startOfMonth()->format('Y-m-d');
         $hasta = $this->fecha_hasta ?? now()->format('Y-m-d');
 
+        // 1. Determinar la columna de usuario según el estado
+        $esModoEliminado = ($this->filtro_estado === 'eliminados');
+        $columnaUsuario = $esModoEliminado ? 'au_usuarioel' : 'au_usuariocr';
+
         $paginator = $this->documentoService
-            ->paginarPorTipoYRangoCreacion($tipo, $desde, $hasta, 10);
+            ->paginarPorTipoYRangoCreacion($tipo, $desde, $hasta, 10, $this->filtro_estado);
 
         $items = $paginator->getCollection();
         $tiposMap = $this->tiposMap;
 
+        // 2. Obtener IDs de usuarios dinámicamente (creador o eliminador)
         $idsUsuarios = $items
-            ->pluck('au_usuariocr')
+            ->pluck($columnaUsuario)
             ->filter()
             ->unique()
             ->values()
             ->all();
 
-        $usuariosMap = $this->usuarioService
-            ->obtenerUsuariosPorIds($idsUsuarios);
+        $usuariosMap = $this->usuarioService->obtenerUsuariosPorIds($idsUsuarios);
 
+        // 3. Obtener IDs de alumnos
         $idsAlumnos = $items->pluck('id_alumno')->filter()->unique()->values()->all();
         $alumnosMap = [];
         foreach ($idsAlumnos as $id) {
@@ -120,12 +128,15 @@ class Tabla extends Component
             $alumnosMap[(int)$id] = is_array($al) ? $al : null;
         }
 
-        $itemsEnriquecidos = $items->map(function ($d) use ($tiposMap, $alumnosMap,$usuariosMap) {
+        // 4. Mapeo y enriquecimiento de datos
+        $itemsEnriquecidos = $items->map(function ($d) use ($tiposMap, $alumnosMap, $usuariosMap, $columnaUsuario) {
             $doc = (array) $d;
 
+            // Tipo de documento
             $tipoId = (int) ($doc['tipo_documento_catalogo'] ?? 0);
             $doc['tipo_nombre'] = $tiposMap[$tipoId] ?? ('Tipo #' . ($tipoId ?: '-'));
 
+            // Datos del Alumno
             $idAlumno = (int) ($doc['id_alumno'] ?? 0);
             $al = ($idAlumno > 0) ? ($alumnosMap[$idAlumno] ?? null) : null;
 
@@ -138,15 +149,13 @@ class Tabla extends Component
             $doc['alumno_dni']       = $al['numero_documento'] ?? '-';
             $doc['alumno_nombre']    = trim(($al['nombre'] ?? '') . ' ' . ($al['apellido_paterno'] ?? '') . ' ' . ($al['apellido_materno'] ?? '')) ?: 'No disponible';
             $doc['alumno_escuela']   = $al['escuela'] ?? 'No disponible';
-            $doc['alumno_condicion'] = $al['condicion'] ?? 'No disponible';
-            $doc['alumno_situacion'] = $al['situacion'] ?? 'No disponible';
 
-            $idUsuario = (int) ($doc['au_usuariocr'] ?? 0);
+            // Usuario (Dinámico: quien creó o quien eliminó)
+            $idUsuario = (int) ($doc[$columnaUsuario] ?? 0);
             $usuario = $usuariosMap[$idUsuario] ?? null;
 
             $doc['usuario_nombre'] = $usuario['nombre'] ?? 'No disponible';
             $doc['usuario_login']  = $usuario['login']  ?? '-';
-
 
             return $doc;
         });
@@ -158,43 +167,40 @@ class Tabla extends Component
     public function exportarPdf()
     {
         $this->resetPage();
-        $tipo  = (int) ($this->id_tipo_documento ?? 0);
-        $desde = Carbon::parse($this->fecha_desde ?? now()->startOfMonth())
-            ->startOfDay()
-            ->format('Y-m-d');
+        $tipo = (int) ($this->id_tipo_documento ?? 0);
+        $desde = Carbon::parse($this->fecha_desde ?? now()->startOfMonth())->startOfDay()->format('Y-m-d');
+        $hasta = Carbon::parse($this->fecha_hasta ?? now())->format('Y-m-d');
 
-        $hasta = Carbon::parse($this->fecha_hasta ?? now())
-            ->format('Y-m-d');
-
-
+        $esModoEliminado = ($this->filtro_estado === 'eliminados');
+        $columnaUsuario = $esModoEliminado ? 'au_usuarioel' : 'au_usuariocr';
+        $vistaPdf = 'pdf.Documentos-reporte';
 
         $tiposMap = $this->tiposMap;
         $tipoLabel = $tipo === 0 ? 'TODOS' : ($tiposMap[$tipo] ?? ('TIPO #' . $tipo));
 
-        $docs = $this->documentoService->paginarPorTipoYRangoCreacion($tipo, $desde, $hasta, 100000)->getCollection();
+        $docs = $this->documentoService
+            ->paginarPorTipoYRangoCreacion($tipo, $desde, $hasta, 100000, $this->filtro_estado)
+            ->getCollection();
 
         $docs = collect($docs);
 
         $idsUsuarios = $docs
-            ->pluck('au_usuariocr')
+            ->pluck($columnaUsuario)
             ->filter()
             ->unique()
             ->values()
             ->all();
 
-        $usuariosMap = $this->usuarioService
-            ->obtenerUsuariosPorIds($idsUsuarios);
-
+        $usuariosMap = $this->usuarioService->obtenerUsuariosPorIds($idsUsuarios);
 
         $idsAlumnos = $docs->pluck('id_alumno')->filter()->unique()->values()->all();
-
         $alumnosMap = [];
         foreach ($idsAlumnos as $id) {
             $al = $this->alumnoService->getAlumnoCached((int)$id, 60);
             $alumnosMap[(int)$id] = is_array($al) ? $al : null;
         }
 
-        $items = $docs->map(function ($d) use ($tiposMap, $alumnosMap, $usuariosMap) {
+        $items = $docs->map(function ($d) use ($tiposMap, $alumnosMap, $usuariosMap, $columnaUsuario) {
             $doc = (array) $d;
 
             $tipoId = (int) ($doc['tipo_documento_catalogo'] ?? 0);
@@ -213,12 +219,11 @@ class Tabla extends Component
             $doc['alumno_condicion'] = $al['condicion'] ?? 'No disponible';
             $doc['alumno_situacion'] = $al['situacion'] ?? 'No disponible';
 
-            $idUsuario = (int) ($doc['au_usuariocr'] ?? 0);
+            $idUsuario = (int) ($doc[$columnaUsuario] ?? 0);
             $usuario = $usuariosMap[$idUsuario] ?? null;
 
             $doc['usuario_nombre'] = $usuario['nombre'] ?? 'No disponible';
             $doc['usuario_login']  = $usuario['login'] ?? '-';
-
 
             return $doc;
         });
@@ -226,20 +231,22 @@ class Tabla extends Component
         $data = [
             'items' => $items,
             'generado' => now(),
+            'es_eliminados' => $esModoEliminado,
             'filtros_limpios' => [
-                'tipo'  => $tipoLabel,
-                'desde' => $desde,
-                'hasta' => $hasta,
+                'tipo'   => $tipoLabel,
+                'desde'  => $desde,
+                'hasta'  => $hasta,
+                'estado' => strtoupper($this->filtro_estado)
             ],
             'nombre_institucion' => 'UNIVERSIDAD NACIONAL INTERCULTURAL DE LA AMAZONIA',
             'direccion_institucion' => 'CAR. SAN JOSE KM. 0.63 CAS. SAN JOSE (COSTADO INSTITUTO BILINGUE)',
             'ruc_institucion' => '20393146657',
         ];
 
-        $pdf = Pdf::loadView('pdf.Documentos-creados', $data)
-            ->setPaper('a4', 'landscape');
+        $pdf = Pdf::loadView($vistaPdf, $data)->setPaper('a4', 'landscape');
 
-        $fileName = 'reporte_documentos_' . now()->format('Ymd_His') . '.pdf';
+        $prefix = $esModoEliminado ? 'reporte_eliminados_' : 'reporte_creados_';
+        $fileName = $prefix . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
